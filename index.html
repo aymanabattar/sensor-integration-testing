@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Device Readings Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* Token values copied from BinTracker's apps/web/src/index.css.
+     Values only — no components, no build step, no dependency on that repo. */
+  :root {
+    --color-olive-deep: #3a3f2a;
+    --color-olive: #6b7350;
+    --color-rust: #a8442a;
+    --color-rust-light: #e0926b;
+    --color-bone: #ddd3c0;
+    --color-bone-light: #f0ebdf;
+    --color-canvas: #faf8f3;
+    --color-edge: #c2b9a3;
+    --color-muted: #7a7259;
+    --color-ink: #2c2a24;
+    --color-live: #5c8a3a;
+    --color-warn: #c9892f;
+
+    --font-sans: "Inter", system-ui, sans-serif;
+    --font-display: "Archivo", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    padding: 2rem 1.5rem 1.25rem;
+    border-bottom: 1px solid var(--color-edge);
+  }
+
+  h1 {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-size: 1.6rem;
+    color: var(--color-olive-deep);
+  }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  select {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-edge);
+    background: white;
+    color: var(--color-ink);
+  }
+
+  #status-line {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-muted);
+  }
+
+  #status-line.error {
+    color: var(--color-rust);
+    font-weight: 600;
+  }
+
+  main {
+    padding: 1.5rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .empty-state {
+    border: 1px dashed var(--color-edge);
+    border-radius: 12px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  .readings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .reading-card {
+    background: white;
+    border: 1px solid var(--color-edge);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 0 0 rgba(194, 185, 163, 0.4);
+  }
+
+  .reading-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .reading-time {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-muted);
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .metric-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .metric-value {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-olive-deep);
+    font-variant-numeric: tabular-nums;
+  }
+
+  details {
+    margin-top: 0.75rem;
+  }
+
+  summary {
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--color-rust);
+    font-weight: 600;
+  }
+
+  pre {
+    background: var(--color-bone-light);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Sensor Integration Testing</div>
+  <h1>Device Readings Dashboard</h1>
+  <div class="controls">
+    <select id="device-select" aria-label="Select device"></select>
+    <span id="status-line">Loading…</span>
+  </div>
+</header>
+
+<main>
+  <div id="content"></div>
+</main>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────
+  // The anon key below has NO access to any table directly (device_readings
+  // has RLS enabled with zero policies). It can only call the two/three
+  // RPC functions granted to `anon` in supabase/schema.sql. That's what
+  // makes it safe to ship in client-side code like this.
+  const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+
+  const POLL_INTERVAL_MS = 120000;
+  const READINGS_LIMIT = 50;
+
+  const statusLine = document.getElementById("status-line");
+  const deviceSelect = document.getElementById("device-select");
+  const content = document.getElementById("content");
+
+  let currentDeviceId = null;
+  let pollHandle = null;
+
+  function setStatus(text, isError) {
+    statusLine.textContent = text;
+    statusLine.classList.toggle("error", Boolean(isError));
+  }
+
+  async function callRpc(fnName, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify(body || {}),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${fnName} failed: ${res.status} ${text}`);
+    }
+    return res.json();
+  }
+
+  function formatMetric(value, unit) {
+    if (value === null || value === undefined) return "—";
+    return `${value}${unit || ""}`;
+  }
+
+  function renderReadings(rows) {
+    if (!rows || rows.length === 0) {
+      content.innerHTML = `<div class="empty-state">No readings yet for this device.</div>`;
+      return;
+    }
+
+    const cards = rows.map((row) => {
+      const time = row.received_at ? new Date(row.received_at).toLocaleString() : "—";
+      const rawJson = JSON.stringify(row.raw_payload, null, 2);
+      return `
+        <div class="reading-card">
+          <div class="reading-top">
+            <strong>${row.device_id}</strong>
+            <span class="reading-time">${time}</span>
+          </div>
+          <div class="metrics">
+            <div><div class="metric-label">Temp</div><div class="metric-value">${formatMetric(row.temp_c, "°C")}</div></div>
+            <div><div class="metric-label">Humidity</div><div class="metric-value">${formatMetric(row.humidity_pct, "%")}</div></div>
+            <div><div class="metric-label">RSSI</div><div class="metric-value">${formatMetric(row.rssi)}</div></div>
+            <div><div class="metric-label">SNR</div><div class="metric-value">${formatMetric(row.snr)}</div></div>
+            <div><div class="metric-label">Filtered RSSI</div><div class="metric-value">${formatMetric(row.filtered_rssi)}</div></div>
+          </div>
+          <details>
+            <summary>Raw payload</summary>
+            <pre>${rawJson.replace(/</g, "&lt;")}</pre>
+          </details>
+        </div>
+      `;
+    });
+
+    content.innerHTML = `<div class="readings">${cards.join("")}</div>`;
+  }
+
+  async function loadDevices() {
+    const devices = await callRpc("list_devices");
+    deviceSelect.innerHTML = "";
+    if (!devices || devices.length === 0) {
+      const opt = document.createElement("option");
+      opt.textContent = "No devices yet";
+      opt.disabled = true;
+      opt.selected = true;
+      deviceSelect.appendChild(opt);
+      return null;
+    }
+    devices.forEach(({ device_id }) => {
+      const opt = document.createElement("option");
+      opt.value = device_id;
+      opt.textContent = device_id;
+      deviceSelect.appendChild(opt);
+    });
+    return devices[0].device_id;
+  }
+
+  async function loadReadings(deviceId) {
+    if (!deviceId) {
+      renderReadings([]);
+      return;
+    }
+    const rows = await callRpc("get_readings", { p_device_id: deviceId, p_limit: READINGS_LIMIT });
+    renderReadings(rows);
+  }
+
+  async function refresh() {
+    try {
+      if (!currentDeviceId) {
+        currentDeviceId = await loadDevices();
+        if (currentDeviceId) deviceSelect.value = currentDeviceId;
+      }
+      await loadReadings(currentDeviceId);
+      setStatus(`Last updated ${new Date().toLocaleTimeString()}`, false);
+    } catch (err) {
+      console.error(err);
+      setStatus(`Error: ${err.message}`, true);
+    }
+  }
+
+  deviceSelect.addEventListener("change", (e) => {
+    currentDeviceId = e.target.value;
+    refresh();
+  });
+
+  refresh();
+  pollHandle = setInterval(refresh, POLL_INTERVAL_MS);
+</script>
+</body>
+</html>

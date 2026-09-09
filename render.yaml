@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: device-readings-dashboard
+    runtime: static
+    staticPublishPath: .
+    buildCommand: "true"
