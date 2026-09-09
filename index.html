@@ -122,12 +122,49 @@
     box-shadow: 0 1px 0 0 rgba(194, 185, 163, 0.4);
   }
 
+  .reading-card.has-fault {
+    border-color: var(--color-rust);
+    border-left-width: 4px;
+  }
+
   .reading-top {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .reading-top-left {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .fault-badge {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: white;
+    background: var(--color-rust);
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+  }
+
+  .metric-value.fault {
+    color: var(--color-rust);
+  }
+
+  .error-message {
+    margin-top: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-rust);
+    background: var(--color-bone-light);
+    border-radius: 6px;
+    padding: 0.5rem 0.65rem;
   }
 
   .reading-time {
@@ -251,10 +288,14 @@
     const cards = rows.map((row) => {
       const time = row.received_at ? new Date(row.received_at).toLocaleString() : "—";
       const rawJson = JSON.stringify(row.raw_payload, null, 2);
+      const hasFault = row.error_code !== null && row.error_code !== undefined && row.error_code !== 0;
       return `
-        <div class="reading-card">
+        <div class="reading-card${hasFault ? " has-fault" : ""}">
           <div class="reading-top">
-            <strong>${row.device_id}</strong>
+            <div class="reading-top-left">
+              <strong>${row.device_id}</strong>
+              ${hasFault ? '<span class="fault-badge">Fault</span>' : ""}
+            </div>
             <span class="reading-time">${time}</span>
           </div>
           <div class="metrics">
@@ -263,7 +304,9 @@
             <div><div class="metric-label">RSSI</div><div class="metric-value">${formatMetric(row.rssi)}</div></div>
             <div><div class="metric-label">SNR</div><div class="metric-value">${formatMetric(row.snr)}</div></div>
             <div><div class="metric-label">Filtered RSSI</div><div class="metric-value">${formatMetric(row.filtered_rssi)}</div></div>
+            <div><div class="metric-label">Error Code</div><div class="metric-value${hasFault ? " fault" : ""}">${formatMetric(row.error_code)}</div></div>
           </div>
+          ${row.error_message ? `<div class="error-message">${row.error_message.replace(/</g, "&lt;")}</div>` : ""}
           <details>
             <summary>Raw payload</summary>
             <pre>${rawJson.replace(/</g, "&lt;")}</pre>

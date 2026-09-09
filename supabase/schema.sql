@@ -14,6 +14,10 @@ create table if not exists device_readings (
   rssi          float,
   snr           float,
   filtered_rssi float,
+  -- First-class fault reporting, alongside raw_payload (kept for full raw
+  -- context/debugging). error_code 0 or null means a nominal reading.
+  error_code    integer,
+  error_message text,
   received_at   timestamptz not null default now(),
   -- Caps payload size so a malicious/misbehaving caller (anon key is public,
   -- embedded client-side by design) can't push arbitrarily large blobs.
@@ -42,15 +46,17 @@ create or replace function ingest_reading(
   p_humidity_pct float default null,
   p_rssi float default null,
   p_snr float default null,
-  p_filtered_rssi float default null
+  p_filtered_rssi float default null,
+  p_error_code int default null,
+  p_error_message text default null
 ) returns void as $$
 begin
   if p_device_id is null or length(trim(p_device_id)) = 0 then
     raise exception 'p_device_id must not be empty';
   end if;
 
-  insert into device_readings (device_id, raw_payload, temp_c, humidity_pct, rssi, snr, filtered_rssi)
-  values (p_device_id, p_raw, p_temp_c, p_humidity_pct, p_rssi, p_snr, p_filtered_rssi);
+  insert into device_readings (device_id, raw_payload, temp_c, humidity_pct, rssi, snr, filtered_rssi, error_code, error_message)
+  values (p_device_id, p_raw, p_temp_c, p_humidity_pct, p_rssi, p_snr, p_filtered_rssi, p_error_code, p_error_message);
 end;
 $$ language plpgsql security definer set search_path = public;
 
